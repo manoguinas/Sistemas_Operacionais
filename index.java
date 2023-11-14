@@ -1,107 +1,213 @@
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Random;
 
-class Page {
-    int N;
-    int I;
-    int D;
-    int R;
-    int M;
-    int T;
-
-    public Page(int N, int I, int D, int T) {
-        this.N = N;
-        this.I = I;
-        this.D = D;
-        this.R = 0;
-        this.M = 0;
-        this.T = T;
-    }
-}
-
-public class PageReplacementSimulator {
+public class SimuladorSubstituicaoPaginas {
     public static void main(String[] args) {
-        int ramSize = 10;
-        int swapSize = 100;
-        ArrayList<Page> ram = new ArrayList<>(ramSize);
-        ArrayList<Page> swap = new ArrayList<>(swapSize);
+        int linhasSwap = 100;
+        int colunasSwap = 6;
+        int linhasRam = 10;
+        int colunasRam = 6;
 
-        // Inicialize a matriz SWAP
-        for (int i = 0; i < swapSize; i++) {
-            int D = new Random().nextInt(50) + 1;
-            swap.add(new Page(i, i + 1, D, new Random().nextInt(9900) + 100));
-        }
+        int[][] matrizSwap = new int[linhasSwap][colunasSwap];
+        int[][] matrizRam = new int[linhasRam][colunasRam];
 
-        // Preencha a matriz RAM
         Random random = new Random();
-        for (int i = 0; i < ramSize; i++) {
-            int randomIndex = random.nextInt(swapSize);
-            ram.add(new Page(i, swap.get(randomIndex).I, swap.get(randomIndex).D, swap.get(randomIndex).T));
+        for (int i = 0; i < linhasSwap; i++) {
+            matrizSwap[i][0] = i; // N
+            matrizSwap[i][1] = i + 1; // I
+            matrizSwap[i][2] = random.nextInt(50) + 1; // D
+            matrizSwap[i][3] = 0; // R
+            matrizSwap[i][4] = 0; // M
+            matrizSwap[i][5] = random.nextInt(9900) + 100; // T
         }
 
-        // Imprima as MATRIZ RAM e MATRIZ SWAP no início da simulação
-        System.out.println("MATRIZ RAM no início da simulação:");
-        printMatrix(ram);
-        System.out.println("\nMATRIZ SWAP no início da simulação:");
-        printMatrix(swap);
+        for (int i = 0; i < linhasRam; i++) {
+            int indiceSwap = random.nextInt(linhasSwap);
+            matrizRam[i] = Arrays.copyOf(matrizSwap[indiceSwap], colunasRam);
+        }
 
-        // Simulação de 1000 instruções
-        for (int instructionCount = 0; instructionCount < 1000; instructionCount++) {
-            int instructionNumber = random.nextInt(100) + 1;
+        System.out.println("Matriz RAM Inicial:");
+        imprimirMatriz(matrizRam);
+        System.out.println("\nMatriz SWAP Inicial:");
+        imprimirMatriz(matrizSwap);
 
-            // Verifique se a instrução está na memória RAM
-            Page page = null;
-            for (Page p : ram) {
-                if (p.I == instructionNumber) {
-                    page = p;
+        for (int instrucao = 1; instrucao <= 1000; instrucao++) {
+            int instrucaoRequisitada = random.nextInt(100) + 1;
+
+            boolean instrucaoNaRam = false;
+            int indiceNaRam = -1;
+            for (int i = 0; i < linhasRam; i++) {
+                if (matrizRam[i][1] == instrucaoRequisitada) {
+                    instrucaoNaRam = true;
+                    indiceNaRam = i;
                     break;
                 }
             }
 
-            if (page != null) {
-                // A instrução está na RAM
-                page.R = 1;
-
-                if (random.nextDouble() <= 0.3) {
-                    page.D = page.D + 1;
-                    page.M = 1;
+            if (instrucaoNaRam) {
+                matrizRam[indiceNaRam][3] = 1;
+                if (random.nextDouble() < 0.3) { 
+                    matrizRam[indiceNaRam][2]++; 
+                    matrizRam[indiceNaRam][4] = 1; 
                 }
             } else {
-                // Implemente o algoritmo de substituição de página aqui (NRU, FIFO, FIFO-SC, RELÓGIO, WS-CLOCK)
-                // Você deve remover uma página da RAM e adicionar a nova página da SWAP
+                // Algoritmo de substituição NRU
+                int classe = -1;
 
-                // Lógica de substituição de página aqui
+                for (int i = 0; i < linhasRam; i++) {
+                    if (matrizRam[i][3] == 0 && matrizRam[i][4] == 0) {
+                        classe = 0; 
+                        break;
+                    }
+                }
+
+                if (classe == -1) {
+                    for (int i = 0; i < linhasRam; i++) {
+                        if (matrizRam[i][3] == 0 && matrizRam[i][4] == 1) {
+                            classe = 1; 
+                            break;
+                        }
+                    }
+                }
+
+                if (classe == -1) {
+                    for (int i = 0; i < linhasRam; i++) {
+                        if (matrizRam[i][3] == 1 && matrizRam[i][4] == 0) {
+                            classe = 2; 
+                            break;
+                        }
+                    }
+                }
+
+                if (classe == -1) {
+                    for (int i = 0; i < linhasRam; i++) {
+                        if (matrizRam[i][3] == 1 && matrizRam[i][4] == 1) {
+                            classe = 3; 
+                            break;
+                        }
+                    }
+                }
+
+                int indiceSubstituir = -1;
+                Random randomClasse = new Random();
+                while (indiceSubstituir == -1) {
+                    int candidato = randomClasse.nextInt(linhasRam);
+                    int candidatoClasse = -1;
+
+                    if (matrizRam[candidato][3] == 0 && matrizRam[candidato][4] == 0) {
+                        candidatoClasse = 0;
+                    } else if (matrizRam[candidato][3] == 0 && matrizRam[candidato][4] == 1) {
+                        candidatoClasse = 1;
+                    } else if (matrizRam[candidato][3] == 1 && matrizRam[candidato][4] == 0) {
+                        candidatoClasse = 2;
+                    } else if (matrizRam[candidato][3] == 1 && matrizRam[candidato][4] == 1) {
+                        candidatoClasse = 3;
+                    }
+
+                    if (candidatoClasse == classe) {
+                        indiceSubstituir = candidato;
+                    }
+                }
+
+                int indiceNaSwap = matrizRam[indiceSubstituir][0];
+                matrizRam[indiceSubstituir] = Arrays.copyOf(matrizSwap[indiceNaSwap], colunasRam);
+            } else {
+                // Algoritmo de substituição FIFO
+                int indiceSubstituir = instrucao % linhasRam;
+                int indiceNaSwap = matrizRam[indiceSubstituir][0];
+                matrizRam[indiceSubstituir] = Arrays.copyOf(matrizSwap[indiceNaSwap], colunasRam);
             }
 
-            if (instructionCount % 10 == 0) {
-                // Zere o bit R a cada 10 instruções
-                for (Page p : ram) {
-                    p.R = 0;
+            // Algoritmo de substituição FIFO-SC
+            int indiceSubstituir = -1;
+
+            for (int i = 0; i < linhasRam; i++) {
+                if (matrizRam[i][3] == 0) {
+                    indiceSubstituir = i;
+                    break;
+                }
+            }
+
+            if (indiceSubstituir == -1) {
+                for (int i = 0; i < linhasRam; i++) {
+                    if (matrizRam[i][3] == 1) {
+                        matrizRam[i][3] = 0; // Zera o bit R
+                    }
+                }
+            }
+
+            int indiceNaSwap = matrizRam[indiceSubstituir][0];
+            matrizRam[indiceSubstituir] = Arrays.copyOf(matrizSwap[indiceNaSwap], colunasRam);
+
+            // Algoritmo de substituição Relógio
+            int indiceSubstituirRelogio = -1;
+
+            while (indiceSubstituirRelogio == -1) {
+                for (int i = 0; i < linhasRam; i++) {
+                    if (matrizRam[i][3] == 0) {
+                        indiceSubstituirRelogio = i;
+                        break;
+                    }
+                }
+
+                if (indiceSubstituirRelogio == -1) {
+                    for (int i = 0; i < linhasRam; i++) {
+                        if (matrizRam[i][3] == 1) {
+                            matrizRam[i][3] = 0; 
+                        }
+                    }
+                }
+            }
+
+            int indiceNaSwapRelogio = matrizRam[indiceSubstituirRelogio][0];
+            matrizRam[indiceSubstituirRelogio] = Arrays.copyOf(matrizSwap[indiceNaSwapRelogio], colunasRam);
+
+            // Algoritmo de substituição WS-Clock
+            int tempoLimiteJanelaTrabalho = 5000;
+            int indiceSubstituirWSClock = -1;
+
+            while (indiceSubstituirWSClock == -1) {
+                for (int i = 0; i < linhasRam; i++) {
+                    if (matrizRam[i][3] == 0) {
+                        indiceSubstituirWSClock = i;
+                        break;
+                    } else {
+                        matrizRam[i][3] = 0; 
+                        if (matrizRam[i][5] > tempoLimiteJanelaTrabalho) {
+                            indiceSubstituirWSClock = i;
+                            break;
+                        }
+                    }
+                }
+
+                if (indiceSubstituirWSClock == -1) {
+                    int ponteiro = (indiceSubstituirWSClock + 1) % linhasRam;
+                    matrizRam[ponteiro][5] = random.nextInt(9900) + 100;
+                }
+            }
+
+            int indiceNaSwapWSClock = matrizRam[indiceSubstituirWSClock][0];
+            matrizRam[indiceSubstituirWSClock] = Arrays.copyOf(matrizSwap[indiceNaSwapWSClock], colunasRam);
+
+            if (instrucao % 10 == 0) {
+                for (int i = 0; i < linhasRam; i++) {
+                    matrizRam[i][3] = 0; 
                 }
             }
         }
 
-        // Salve as páginas modificadas na SWAP
-        for (Page p : ram) {
-            if (p.M == 1) {
-                // Salve a página modificada na SWAP e defina M como 0
-                swap.add(new Page(swap.size(), p.I, p.D, p.T));
-                p.M = 0;
-            }
-        }
-
-        // Imprima as MATRIZ RAM e MATRIZ SWAP no final da simulação
-        System.out.println("\nMATRIZ RAM no final da simulação:");
-        printMatrix(ram);
-        System.out.println("\nMATRIZ SWAP no final da simulação:");
-        printMatrix(swap);
+        System.out.println("\nMatriz RAM Final:");
+        imprimirMatriz(matrizRam);
+        System.out.println("\nMatriz SWAP Final:");
+        imprimirMatriz(matrizSwap);
     }
 
-    // Método para imprimir a matriz
-    public static void printMatrix(ArrayList<Page> matrix) {
-        for (Page page : matrix) {
-            System.out.printf("N=%d, I=%d, D=%d, R=%d, M=%d, T=%d\n",
-                    page.N, page.I, page.D, page.R, page.M, page.T);
+    private static void imprimirMatriz(int[][] matriz) {
+        for (int i = 0; i < matriz.length; i++) {
+            for (int j = 0; j < matriz[i].length; j++) {
+                System.out.print(matriz[i][j] + "\t");
+            }
+            System.out.println();
         }
     }
 }
